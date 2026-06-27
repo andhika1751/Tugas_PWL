@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\KrsExport;
 use App\Models\Krs;
+use App\Models\Mahasiswa;
 use App\Models\Matakuliah;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -43,29 +44,38 @@ class KrsController extends Controller
     }
 
     /**
-     * Khusus mahasiswa: form ambil mata kuliah untuk dirinya sendiri.
+     * Form tambah KRS.
+     * - Admin    : pilih mahasiswa manapun + matakuliah
+     * - Mahasiswa: matakuliah saja (npm otomatis dirinya sendiri)
      */
-    public function create()
+    public function create(Request $request)
     {
         $matakuliahs = Matakuliah::all();
-        return view('krs.create', compact('matakuliahs'));
+        $mahasiswas  = $request->user()->isAdmin() ? Mahasiswa::all() : null;
+
+        return view('krs.create', compact('matakuliahs', 'mahasiswas'));
     }
 
     /**
-     * Khusus mahasiswa: simpan KRS untuk npm miliknya sendiri.
+     * Simpan KRS baru.
+     * - Admin    : npm dipilih dari form (bisa untuk mahasiswa manapun)
+     * - Mahasiswa: npm dipaksa dari user yang login (tidak bisa pilih npm lain)
      */
     public function store(Request $request)
     {
+        $isAdmin = $request->user()->isAdmin();
+
         $request->validate([
+            'npm'             => $isAdmin ? 'required|string|exists:mahasiswa,npm' : 'nullable',
             'kode_matakuliah' => 'required|string|exists:matakuliah,kode_matakuliah',
         ]);
 
-        $npm = $request->user()->npm;
+        $npm = $isAdmin ? $request->npm : $request->user()->npm;
 
         $exists = Krs::where('npm', $npm)
                      ->where('kode_matakuliah', $request->kode_matakuliah)->exists();
         if ($exists) {
-            return back()->withErrors(['kode_matakuliah' => 'Anda sudah mengambil matakuliah ini!'])->withInput();
+            return back()->withErrors(['kode_matakuliah' => 'Mahasiswa ini sudah mengambil matakuliah tersebut!'])->withInput();
         }
 
         Krs::create([
@@ -73,7 +83,7 @@ class KrsController extends Controller
             'kode_matakuliah' => $request->kode_matakuliah,
         ]);
 
-        return redirect()->route('krs.index')->with('success', 'Mata kuliah berhasil diambil!');
+        return redirect()->route('krs.index')->with('success', 'Data KRS berhasil ditambahkan!');
     }
 
     /**
@@ -92,18 +102,65 @@ class KrsController extends Controller
     }
 
     /**
-     * Khusus mahasiswa: drop mata kuliah miliknya sendiri.
+     * Khusus Admin: form edit KRS milik mahasiswa manapun.
+     */
+    public function edit(Request $request, $id)
+    {
+        if (! $request->user()->isAdmin()) {
+            abort(403, 'Hanya Admin yang dapat mengedit data KRS.');
+        }
+
+        $krs = Krs::findOrFail($id);
+        $mahasiswas  = Mahasiswa::all();
+        $matakuliahs = Matakuliah::all();
+
+        return view('krs.edit', compact('krs', 'mahasiswas', 'matakuliahs'));
+    }
+
+    /**
+     * Khusus Admin: update KRS (bisa pindah mahasiswa/matakuliah).
+     */
+    public function update(Request $request, $id)
+    {
+        if (! $request->user()->isAdmin()) {
+            abort(403, 'Hanya Admin yang dapat mengedit data KRS.');
+        }
+
+        $krs = Krs::findOrFail($id);
+
+        $request->validate([
+            'npm'             => 'required|string|exists:mahasiswa,npm',
+            'kode_matakuliah' => 'required|string|exists:matakuliah,kode_matakuliah',
+        ]);
+
+        $exists = Krs::where('npm', $request->npm)
+                     ->where('kode_matakuliah', $request->kode_matakuliah)
+                     ->where('id', '!=', $krs->id)
+                     ->exists();
+        if ($exists) {
+            return back()->withErrors(['kode_matakuliah' => 'Mahasiswa ini sudah mengambil matakuliah tersebut!'])->withInput();
+        }
+
+        $krs->update($request->only('npm', 'kode_matakuliah'));
+
+        return redirect()->route('krs.index')->with('success', 'Data KRS berhasil diperbarui!');
+    }
+
+    /**
+     * Hapus KRS.
+     * - Admin    : bisa hapus KRS siapa saja.
+     * - Mahasiswa: hanya bisa hapus (drop) KRS miliknya sendiri.
      */
     public function destroy(Request $request, $id)
     {
         $krs = Krs::findOrFail($id);
 
-        if ($krs->npm !== $request->user()->npm) {
+        if ($request->user()->isMahasiswa() && $krs->npm !== $request->user()->npm) {
             abort(403, 'Anda tidak dapat menghapus KRS milik mahasiswa lain.');
         }
 
         $krs->delete();
-        return redirect()->route('krs.index')->with('success', 'Mata kuliah berhasil di-drop!');
+        return redirect()->route('krs.index')->with('success', 'Data KRS berhasil dihapus!');
     }
 
     /**

@@ -3,10 +3,10 @@
 @push('styles') @include('partials.crud-styles') @endpush
 
 @section('content')
-<h1 class="page-title">Edit KRS</h1>
+<h1 class="page-title">Edit Data KRS</h1>
 
 <div class="card form-max">
-    <div class="card-header">Form Edit Data KRS</div>
+    <div class="card-header">Form Edit KRS</div>
     <div class="card-body">
         <form action="{{ route('krs.update', $krs->id) }}" method="POST">
             @csrf @method('PUT')
@@ -16,8 +16,7 @@
                 <select id="npm" name="npm" class="{{ $errors->has('npm') ? 'is-invalid' : '' }}">
                     <option value="">-- Pilih Mahasiswa --</option>
                     @foreach($mahasiswas as $mhs)
-                        <option value="{{ $mhs->npm }}"
-                            {{ old('npm', $krs->npm) == $mhs->npm ? 'selected' : '' }}>
+                        <option value="{{ $mhs->npm }}" {{ old('npm', $krs->npm) == $mhs->npm ? 'selected' : '' }}>
                             {{ $mhs->npm }} - {{ $mhs->nama }}
                         </option>
                     @endforeach

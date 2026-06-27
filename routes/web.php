@@ -46,22 +46,19 @@ Route::middleware(['auth'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | ADMIN & MAHASISWA: lihat & export KRS
+    | ADMIN & MAHASISWA: KRS
+    | - index, create, store, show, destroy bisa diakses keduanya
+    |   (logic & batasan kepemilikan/role diatur di dalam KrsController)
+    | - edit & update khusus Admin (dicek manual di controller, supaya
+    |   tidak perlu bikin grup/route terpisah)
     |--------------------------------------------------------------------------
     */
     Route::middleware('role:admin,mahasiswa')->group(function () {
-        Route::resource('krs', KrsController::class)->only(['index', 'show']);
+        Route::resource('krs', KrsController::class)
+             ->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+
         Route::get('/krs-export/pdf',   [KrsController::class, 'exportPdf'])->name('krs.export.pdf');
         Route::get('/krs-export/excel', [KrsController::class, 'exportExcel'])->name('krs.export.excel');
-    });
-
-    /*
-    |--------------------------------------------------------------------------
-    | KHUSUS MAHASISWA: ambil (create/store) & drop (destroy) mata kuliah
-    |--------------------------------------------------------------------------
-    */
-    Route::middleware('role:mahasiswa')->group(function () {
-        Route::resource('krs', KrsController::class)->only(['create', 'store', 'destroy']);
     });
 });
 

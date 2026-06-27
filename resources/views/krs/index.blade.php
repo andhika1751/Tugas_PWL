@@ -6,9 +6,9 @@
 <h1 class="page-title">Halaman KRS</h1>
 
 <div class="mb-4" style="display:flex; gap:0.6rem; flex-wrap:wrap;">
-    @if(auth()->user()->isMahasiswa())
-    <a href="{{ route('krs.create') }}" class="btn btn-primary">Ambil Mata Kuliah</a>
-    @endif
+    <a href="{{ route('krs.create') }}" class="btn btn-primary">
+        {{ auth()->user()->isAdmin() ? 'Tambah Data KRS' : 'Ambil Mata Kuliah' }}
+    </a>
     <a href="{{ route('krs.export.pdf') }}" class="btn btn-danger">Export PDF</a>
     <a href="{{ route('krs.export.excel') }}" class="btn btn-success">Export Excel</a>
 </div>
@@ -36,7 +36,7 @@
                 <th>Kode MK</th>
                 <th>Nama Matakuliah</th>
                 <th style="width:55px">SKS</th>
-                <th style="width:140px">Aksi</th>
+                <th style="width:190px">Aksi</th>
             </tr>
         </thead>
         <tbody>
@@ -51,11 +51,18 @@
                 <td>
                     <div class="aksi-cell">
                         <a href="{{ route('krs.show', $krs->id) }}" class="btn btn-info">Detail</a>
-                        @if(auth()->user()->isMahasiswa())
+
+                        @if(auth()->user()->isAdmin())
+                        <a href="{{ route('krs.edit', $krs->id) }}" class="btn btn-warning">Edit</a>
+                        @endif
+
+                        @if(auth()->user()->isAdmin() || $krs->npm === auth()->user()->npm)
                         <form action="{{ route('krs.destroy', $krs->id) }}" method="POST"
-                              onsubmit="return confirm('Yakin ingin drop matakuliah ini?')">
+                              onsubmit="return confirm('Yakin ingin menghapus KRS ini?')">
                             @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-danger">Drop</button>
+                            <button type="submit" class="btn btn-danger">
+                                {{ auth()->user()->isAdmin() ? 'Hapus' : 'Drop' }}
+                            </button>
                         </form>
                         @endif
                     </div>

@@ -3,19 +3,31 @@
 @push('styles') @include('partials.crud-styles') @endpush
 
 @section('content')
-<h1 class="page-title">Ambil Mata Kuliah</h1>
+<h1 class="page-title">{{ auth()->user()->isAdmin() ? 'Tambah Data KRS' : 'Ambil Mata Kuliah' }}</h1>
 
 <div class="card form-max">
-    <div class="card-header">Form Ambil Mata Kuliah</div>
+    <div class="card-header">Form {{ auth()->user()->isAdmin() ? 'Tambah KRS' : 'Ambil Mata Kuliah' }}</div>
     <div class="card-body">
         <form action="{{ route('krs.store') }}" method="POST">
             @csrf
 
             <div class="form-group">
                 <label>Mahasiswa</label>
-                <input type="text" value="{{ auth()->user()->npm }} - {{ auth()->user()->name }}" disabled
-                       style="background:#eee;width:100%;padding:0.5rem;border:1px solid #ccc;border-radius:4px;">
-                <small style="color:#777;">Mata kuliah akan diambil atas nama akun Anda yang sedang login.</small>
+                @if(auth()->user()->isAdmin())
+                    <select name="npm" class="{{ $errors->has('npm') ? 'is-invalid' : '' }}">
+                        <option value="">-- Pilih Mahasiswa --</option>
+                        @foreach($mahasiswas as $mhs)
+                            <option value="{{ $mhs->npm }}" {{ old('npm') == $mhs->npm ? 'selected' : '' }}>
+                                {{ $mhs->npm }} - {{ $mhs->nama }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('npm')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                @else
+                    <input type="text" value="{{ auth()->user()->npm }} - {{ auth()->user()->name }}" disabled
+                           style="background:#eee;width:100%;padding:0.5rem;border:1px solid #ccc;border-radius:4px;">
+                    <small style="color:#777;">Mata kuliah akan diambil atas nama akun Anda yang sedang login.</small>
+                @endif
             </div>
 
             <div class="form-group">
